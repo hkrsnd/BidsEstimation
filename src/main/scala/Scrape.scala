@@ -18,6 +18,12 @@ object Scrape {
   // 結果ページから予定価格、最低制限価格、ランダム係数を取り出す
   def getResult(url: String) = {
     val doc = Jsoup.connect(url).get()
+    val place = doc
+      .getElementsByTag("table")
+      .first.select("tr").asScala(2).select("td").asScala(1).text
+    val name = doc
+      .getElementsByTag("table")
+      .first.select("tr").asScala(3).select("td").asScala(1).text
     val price = doc
       .getElementsByTag("table")
       .first.select("tr").asScala(4).select("td").asScala(1).text
@@ -34,8 +40,12 @@ object Scrape {
     val flag = event == "造園工事" || event == "土木工事"
     println(flag)
 
+    val min_basis = parseToInt(min_price) / parseToDouble(random_coefficient)
 
-    (parseToInt(price), parseToInt(min_price), parseToDouble(random_coefficient), flag)
+    val ratio = min_basis / parseToInt(price)
+
+
+    (parseToInt(price), parseToInt(min_price), parseToDouble(random_coefficient), flag, place, name, ratio)
   }
   // abc,def円をIntにパース
   def parseToInt(yen: String) = {
@@ -52,7 +62,7 @@ object Scrape {
       case e: Exception => 0
     }
   }
-  def checkResult(pmrf: (Long, Long, Double, Boolean)) = {
+  def checkResult(pmrf: (Long, Long, Double, Boolean, String, String, Double)) = {
     try {
       if(pmrf._1 >= 1000.0 && pmrf._2 >= 1000.0 && pmrf._3 >= 1.0 && pmrf._4)
         true
@@ -63,7 +73,7 @@ object Scrape {
     }
   }
 }
-
+/*
 object Main {
   import Scrape._
 
@@ -73,20 +83,19 @@ object Main {
     "http://www2.nyusatsu.city.kyoto.lg.jp/keiyaku/ebid/kouji/kekka_kouji2016c.htm"
   )
 
+
   def main(args: Array[String]) = {
     val urls = list_urls.par.map{url => getResultUrls(url)}.flatten
-/*    val results = for { url <- urls} yield {
-      getResult(url)
-    }
- */
     val results = urls.par.map{url => getResult(url)}
       .filter{x => checkResult(x)}
-    val file = new File("result2016.csv")
+    val file = new File("result2016_name.csv")
     val filewriter = new FileWriter(file, true)
 
     results
+    .toList
+      .sortWith(_._7 > _._7)
       .map{ pmr =>
-      filewriter.write(pmr._1.toString + "," + pmr._2.toString + "," + pmr._3.toString + "\n")
+      filewriter.write(pmr._5 + "," + pmr._6 + "," + pmr._1.toString + "," + pmr._2.toString + "," + pmr._3.toString + "," + pmr._7 + "\n")
     }
     filewriter.close()
     results
@@ -94,9 +103,7 @@ object Main {
       println(pmr._1.toString + " ; " + pmr._2.toString + " ; " + pmr._3.toString)
     }
     println()
-/*
-    results.map{pmr => println("予定価格: " + pmr._1.toString + "　最低制限価格: " + pmr._2.toString + "　ランダム係数: " + pmr._3.toString)}
-    println("\n")
- */
   }
+
 }
+ */
